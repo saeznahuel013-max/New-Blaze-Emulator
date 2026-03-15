@@ -1,49 +1,24 @@
-﻿import socket
-import struct
-import sys
+import socket
+import threading
 
-def crear_respuesta_dns(data, ip_destino):
-    ID = data[:2]
-    Flags = b"\x81\x80"
-    QDCOUNT = data[4:6]
-    ANCOUNT = b"\x00\x01"
-    NSCOUNT = b"\x00\x00"
-    ARCOUNT = b"\x00\x00"
-    
-    end_of_name = data[12:].find(b'\x00') + 13
-    Question = data[12:end_of_name + 4]
-    
-    Answer = b"\xc0\x0c" + b"\x00\x01" + b"\x00\x01" + struct.pack(">I", 60) + b"\x00\x04"
-    IP_Bytes = socket.inet_aton(ip_destino)
-    
-    return ID + Flags + QDCOUNT + ANCOUNT + NSCOUNT + ARCOUNT + Question + Answer + IP_Bytes
+def handle_client(client_socket):
+    print(f"[+] Conexión recibida de la PS3")
+    # Aquí es donde el FIFA 15 enviaría datos
+    # Por ahora, mantenemos la conexión abierta para que no dé error
+    data = client_socket.recv(1024)
+    print(f"[*] Datos recibidos: {data}")
+    client_socket.close()
 
-def iniciar_servidor():
-    mi_ip = "10.180.85.246" 
-    puerto = 53
-    
-    print("==============================================")
-    print("   FIFA REDIRECTOR PRO - VERSION COMPATIBLE   ")
-    print("   Redireccionando EA a: " + mi_ip)
-    print("==============================================")
+def start_server():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(('0.0.0.0', 42124))
+    server.listen(5)
+    print("[*] Servidor Blaze FIFA 15 escuchando en el puerto 42124...")
 
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind(('', puerto))
-    except Exception as e:
-        print("ERROR: No se pudo abrir el puerto 53.")
-        print("Detalle: " + str(e))
-        print("Recuerda ejecutar el CMD como ADMINISTRADOR.")
-        return
-
-    print("Escuchando peticiones... No cierres esta ventana.")
-    
     while True:
-        data, addr = sock.recvfrom(512)
-        print("Peticion recibida de la PS3!")
-        respuesta = crear_respuesta_dns(data, mi_ip)
-        sock.sendto(respuesta, addr)
-        print("Respuesta enviada correctamente.")
+        client, addr = server.accept()
+        client_handler = threading.Thread(target=handle_client, args=(client,))
+        client_handler.start()
 
 if __name__ == "__main__":
-    iniciar_servidor()
+    start_server()
